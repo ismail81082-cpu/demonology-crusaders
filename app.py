@@ -221,7 +221,7 @@ async def majorcarry(interaction: discord.Interaction):
 
     ch = bot.get_channel(MAJOR_CARRY_CHANNEL_ID)
     if ch:
-        await ch.send(f"<@&{1517535016186286150}> Major Carry requested by {interaction.user.mention}")
+        await ch.send(f"<{1517535016186286150}> Major Carry requested by {interaction.user.mention}")
 
     await interaction.response.send_message("Sent.", ephemeral=True)
 
