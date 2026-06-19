@@ -199,7 +199,7 @@ async def carry(interaction: discord.Interaction):
 
     ch = bot.get_channel(CARRY_CHANNEL_ID)
     if ch:
-        await ch.send(f"<@&{CARRY_ROLE_ID}> Carry requested by {interaction.user.mention}")
+        await ch.send(f"<@&{1517604341387759656}> Carry requested by {interaction.user.mention}")
 
     await interaction.response.send_message("Sent.", ephemeral=True)
 
@@ -210,7 +210,7 @@ async def grind(interaction: discord.Interaction):
 
     ch = bot.get_channel(GRIND_CHANNEL_ID)
     if ch:
-        await ch.send(f"<@&{GRIND_ROLE_ID}> Grind requested by {interaction.user.mention}")
+        await ch.send(f"<@&{1517604391371276489}> Grind requested by {interaction.user.mention}")
 
     await interaction.response.send_message("Sent.", ephemeral=True)
 
@@ -221,7 +221,7 @@ async def majorcarry(interaction: discord.Interaction):
 
     ch = bot.get_channel(MAJOR_CARRY_CHANNEL_ID)
     if ch:
-        await ch.send(f"<@&{MAJOR_CARRY_ROLE_ID}> Major Carry requested by {interaction.user.mention}")
+        await ch.send(f"<@&{1517535016186286150}> Major Carry requested by {interaction.user.mention}")
 
     await interaction.response.send_message("Sent.", ephemeral=True)
 
