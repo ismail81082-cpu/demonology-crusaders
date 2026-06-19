@@ -56,29 +56,39 @@ async def log_action(msg):
 class TicketView(View):
     def __init__(self):
         super().__init__(timeout=None)
-
-    @discord.ui.button(label="Create Ticket", style=discord.ButtonStyle.green)
-    async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+@discord.ui.button(label="Create Ticket", style=discord.ButtonStyle.green)
+async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
     await interaction.response.defer(ephemeral=True)
 
     guild = interaction.guild
+
+    if TICKET_CATEGORY_ID == 0:
+        return await interaction.followup.send(
+            "Ticket system not configured (missing category ID).",
+            ephemeral=True
+        )
+
+    category = guild.get_channel(TICKET_CATEGORY_ID)
+
+    if category is None:
+        return await interaction.followup.send(
+            "Ticket system not set up correctly (invalid category ID).",
+            ephemeral=True
+        )
 
     overwrites = {
         guild.default_role: discord.PermissionOverwrite(view_channel=False),
         interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True),
     }
 
-        if TICKET_CATEGORY_ID == 0:
-            return await interaction.response.send_message(
-                "Ticket system not configured (missing category ID).",
-                ephemeral=True
-            )
+    channel = await guild.create_text_channel(
+        name=f"ticket-{interaction.user.id}",
+        category=category,
+        overwrites=overwrites
+    )
 
-    category = guild.get_channel(TICKET_CATEGORY_ID)
-
-if category is None:
-    return await interaction.followup.send(
-        "Ticket system not set up correctly (invalid category ID).",
+    await interaction.followup.send(
+        f"Ticket created: {channel.mention}",
         ephemeral=True
     )
 
