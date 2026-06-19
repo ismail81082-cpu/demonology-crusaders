@@ -57,9 +57,9 @@ class TicketView(View):
     def __init__(self):
         super().__init__(timeout=None)
         
-   @discord.ui.button(label="Create Ticket", style=discord.ButtonStyle.green)
+  @discord.ui.button(label="Create Ticket", style=discord.ButtonStyle.green)
 async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-    try:
+    await interaction.response.defer(ephemeral=True)
         guild = interaction.guild
 
         if TICKET_CATEGORY_ID == 0:
@@ -68,7 +68,13 @@ async def create_ticket(self, interaction: discord.Interaction, button: discord.
                 ephemeral=True
             )
 
-        category = guild.get_channel(TICKET_CATEGORY_ID)
+    category = guild.get_channel(TICKET_CATEGORY_ID)
+
+if category is None:
+    return await interaction.followup.send(
+        "Ticket system not set up correctly (invalid category ID).",
+        ephemeral=True
+    )
 
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
