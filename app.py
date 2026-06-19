@@ -56,10 +56,46 @@ async def log_action(msg):
 class TicketView(View):
     def __init__(self):
         super().__init__(timeout=None)
-
-    @discord.ui.button(label="Create Ticket", style=discord.ButtonStyle.green)
-    async def create_ticket(self, interaction: discord.Interaction, button: Button):
+        
+   @discord.ui.button(label="Create Ticket", style=discord.ButtonStyle.green)
+async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+    try:
         guild = interaction.guild
+
+        if TICKET_CATEGORY_ID == 0:
+            return await interaction.response.send_message(
+                "Ticket system not configured (missing category ID).",
+                ephemeral=True
+            )
+
+        category = guild.get_channel(TICKET_CATEGORY_ID)
+
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+        }
+
+        if STAFF_ROLE_ID != 0:
+            role = guild.get_role(STAFF_ROLE_ID)
+            overwrites[role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
+
+        channel = await guild.create_text_channel(
+            name=f"ticket-{interaction.user.id}",
+            category=category,
+            overwrites=overwrites
+        )
+
+        await interaction.response.send_message(
+            f"Ticket created: {channel.mention}",
+            ephemeral=True
+        )
+
+    except Exception as e:
+        print(e)
+        await interaction.response.send_message(
+            "Error creating ticket. Check bot permissions or IDs.",
+            ephemeral=True
+        )
         existing = discord.utils.get(guild.channels, name=f"ticket-{interaction.user.id}")
         if existing:
             await interaction.response.send_message(f"You already have a ticket: {existing.mention}", ephemeral=True)
