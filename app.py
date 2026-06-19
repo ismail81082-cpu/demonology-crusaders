@@ -57,6 +57,26 @@ async def log_action(msg):
     if ch:
         await ch.send(msg)
 
+# ================= TICKET CLOSE VIEW =================
+
+class CloseTicketView(View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="🔒 Close Ticket", style=discord.ButtonStyle.red)
+    async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+
+        # STAFF ONLY CHECK
+        if not has_role(interaction.user, STAFF_ROLE_ID):
+            return await interaction.response.send_message(
+                "You do not have permission to close tickets.",
+                ephemeral=True
+            )
+
+        await interaction.response.send_message("Closing ticket in 5 seconds...")
+        await asyncio.sleep(5)
+        await interaction.channel.delete()
+
 # ================= TICKET SYSTEM =================
 
 class TicketView(View):
@@ -98,22 +118,15 @@ class TicketView(View):
             overwrites=overwrites
         )
 
-        await channel.send(f"{interaction.user.mention} support will be with you soon.")
+        await channel.send(
+            f"{interaction.user.mention} support will be with you soon.",
+            view=CloseTicketView()
+        )
 
         await interaction.followup.send(
             f"Ticket created: {channel.mention}",
             ephemeral=True
         )
-
-class CloseTicketView(View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    @discord.ui.button(label="Close Ticket", style=discord.ButtonStyle.red)
-    async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("Closing ticket in 5 seconds...")
-        await asyncio.sleep(5)
-        await interaction.channel.delete()
 
 # ================= EVENTS =================
 
@@ -139,14 +152,12 @@ async def ticketpanel(interaction: discord.Interaction):
 async def kick(interaction: discord.Interaction, member: discord.Member, reason: str = "No reason"):
     await member.kick(reason=reason)
     await interaction.response.send_message("Kicked.")
-    await log_action(f"Kick: {member} by {interaction.user}")
 
 @bot.tree.command(name="ban")
 @app_commands.checks.has_permissions(ban_members=True)
 async def ban(interaction: discord.Interaction, member: discord.Member, reason: str = "No reason"):
     await member.ban(reason=reason)
     await interaction.response.send_message("Banned.")
-    await log_action(f"Ban: {member} by {interaction.user}")
 
 @bot.tree.command(name="unban")
 @app_commands.checks.has_permissions(ban_members=True)
