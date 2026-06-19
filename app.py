@@ -56,11 +56,10 @@ async def log_action(msg):
 class TicketView(View):
     def __init__(self):
         super().__init__(timeout=None)
-        
-  @discord.ui.button(label="Create Ticket", style=discord.ButtonStyle.green)
-async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-    await interaction.response.defer(ephemeral=True)
-        guild = interaction.guild
+
+    @discord.ui.button(label="Create Ticket", style=discord.ButtonStyle.green)
+    async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
 
         if TICKET_CATEGORY_ID == 0:
             return await interaction.response.send_message(
