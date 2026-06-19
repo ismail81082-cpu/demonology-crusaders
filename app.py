@@ -11,9 +11,6 @@ import os
 
 TOKEN = os.getenv("TOKEN")
 
-TICKET_CATEGORY_ID = 1517602245842046996
-STAFF_ROLE_ID = 1517602381888749689
-
 CARRY_CHANNEL_ID = 1517601489722282054
 GRIND_CHANNEL_ID = 1517601555002691754
 MAJOR_CARRY_CHANNEL_ID = 1517601583645593620
@@ -22,6 +19,9 @@ LOG_CHANNEL_ID = 1517601418901586141
 CARRY_ROLE_ID = 1517602581071790280
 GRIND_ROLE_ID = 1517602603666772049
 MAJOR_CARRY_ROLE_ID = 1517602552819093614
+
+TICKET_CATEGORY_ID = 1517602245842046996
+STAFF_ROLE_ID = 1517602381888749689
 
 WARNINGS_FILE = "warnings.json"
 
@@ -52,14 +52,19 @@ warnings_db = load_warnings()
 def has_role(member, role_id):
     return role_id and any(r.id == role_id for r in member.roles)
 
-# ================= CLOSE VIEW =================
+async def log_action(msg):
+    ch = bot.get_channel(LOG_CHANNEL_ID)
+    if ch:
+        await ch.send(msg)
 
-class CloseView(View):
+# ================= 🔥 CLEAN TICKET SYSTEM (FIXED) =================
+
+class CloseTicketView(View):
     def __init__(self):
         super().__init__(timeout=None)
 
     @discord.ui.button(label="🔒 Close Ticket", style=discord.ButtonStyle.red)
-    async def close(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
 
         staff_role = interaction.guild.get_role(STAFF_ROLE_ID)
 
@@ -73,14 +78,13 @@ class CloseView(View):
         await asyncio.sleep(3)
         await interaction.channel.delete()
 
-# ================= TICKET SYSTEM =================
 
 class TicketView(View):
     def __init__(self):
         super().__init__(timeout=None)
 
     @discord.ui.button(label="🎫 Create Ticket", style=discord.ButtonStyle.green)
-    async def create(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
 
         await interaction.response.defer(ephemeral=True)
 
@@ -90,9 +94,13 @@ class TicketView(View):
         if not category:
             return await interaction.followup.send("Ticket category missing.", ephemeral=True)
 
+        # prevent duplicates
         existing = discord.utils.get(guild.channels, name=f"ticket-{interaction.user.id}")
         if existing:
-            return await interaction.followup.send(f"You already have a ticket: {existing.mention}", ephemeral=True)
+            return await interaction.followup.send(
+                f"You already have a ticket: {existing.mention}",
+                ephemeral=True
+            )
 
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
@@ -109,21 +117,32 @@ class TicketView(View):
             overwrites=overwrites
         )
 
+        # ONLY PLACE CLOSE BUTTON EXISTS
         await channel.send(
-            f"{interaction.user.mention} ticket created.",
-            view=CloseView()
+            f"{interaction.user.mention} welcome to your ticket.",
+            view=CloseTicketView()
         )
 
-        await interaction.followup.send(f"Ticket created: {channel.mention}", ephemeral=True)
+        await interaction.followup.send(
+            f"Ticket created: {channel.mention}",
+            ephemeral=True
+        )
+
+# ================= EVENTS =================
+
+@bot.event
+async def on_ready():
+    await bot.tree.sync()
+    print(f"Logged in as {bot.user}")
 
 # ================= PANEL =================
 
 @bot.tree.command(name="ticketpanel")
 @app_commands.checks.has_permissions(administrator=True)
-async def panel(interaction: discord.Interaction):
+async def ticketpanel(interaction: discord.Interaction):
 
     await interaction.channel.send(
-        "🎫 Click below to create a ticket",
+        "🎫 Support Ticket Panel",
         view=TicketView()
     )
 
@@ -171,7 +190,7 @@ async def warnings(interaction: discord.Interaction, member: discord.Member):
     data = warnings_db.get(str(member.id), [])
     await interaction.response.send_message("\n".join(data) if data else "No warnings.")
 
-# ================= CARRY SYSTEM =================
+# ================= CARRY =================
 
 @bot.tree.command(name="carry")
 async def carry(interaction: discord.Interaction):
@@ -206,11 +225,6 @@ async def majorcarry(interaction: discord.Interaction):
 
     await interaction.response.send_message("Sent.", ephemeral=True)
 
-# ================= START =================
-
-@bot.event
-async def on_ready():
-    await bot.tree.sync()
-    print(f"Logged in as {bot.user}")
+# ================= RUN =================
 
 bot.run(TOKEN)
