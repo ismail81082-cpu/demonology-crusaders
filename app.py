@@ -23,9 +23,10 @@ MAJOR_CARRY_ROLE_ID = 1517602552819093614
 TICKET_CATEGORY_ID = 1517602245842046996
 STAFF_ROLE_ID = 1517602381888749689
 
+TICKET_COUNTER_FILE = "ticket_counter.json"
 WARNINGS_FILE = "warnings.json"
 
-# ================= BOT SETUP =================
+# ================= BOT =================
 
 intents = discord.Intents.default()
 intents.members = True
@@ -33,31 +34,32 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ================= UTIL =================
+# ================= FILE HELPERS =================
+
+def load_json(file, default):
+    if os.path.exists(file):
+        with open(file, "r") as f:
+            return json.load(f)
+    return default
+
+def save_json(file, data):
+    with open(file, "w") as f:
+        json.dump(data, f, indent=2)
+
+warnings_db = load_json(WARNINGS_FILE, {})
+ticket_counter = load_json(TICKET_COUNTER_FILE, {"count": 0})
+
+def next_ticket_id():
+    ticket_counter["count"] += 1
+    save_json(TICKET_COUNTER_FILE, ticket_counter)
+    return ticket_counter["count"]
+
+# ================= HELPERS =================
 
 def has_role(member, role_id):
     return role_id and any(r.id == role_id for r in member.roles)
 
-async def log_action(msg):
-    ch = bot.get_channel(LOG_CHANNEL_ID)
-    if ch:
-        await ch.send(msg)
-
-# ================= WARNINGS =================
-
-def load_warnings():
-    if os.path.exists(WARNINGS_FILE):
-        with open(WARNINGS_FILE, "r") as f:
-            return json.load(f)
-    return {}
-
-def save_warnings(data):
-    with open(WARNINGS_FILE, "w") as f:
-        json.dump(data, f, indent=2)
-
-warnings_db = load_warnings()
-
-# ================= CLOSE BUTTON (STAFF ONLY) =================
+# ================= CLOSE BUTTON =================
 
 class CloseTicketView(View):
     def __init__(self):
@@ -76,10 +78,9 @@ class CloseTicketView(View):
 
         await interaction.response.send_message("Closing ticket in 5 seconds...")
         await asyncio.sleep(5)
-
         await interaction.channel.delete()
 
-# ================= TICKET PANEL + CREATE =================
+# ================= TICKET SYSTEM =================
 
 class TicketView(View):
     def __init__(self):
@@ -92,20 +93,12 @@ class TicketView(View):
 
         guild = interaction.guild
 
-        # prevent duplicates
-        existing = discord.utils.get(guild.channels, name=f"ticket-{interaction.user.id}")
-        if existing:
-            return await interaction.followup.send(
-                f"You already have a ticket: {existing.mention}",
-                ephemeral=True
-            )
-
         category = guild.get_channel(TICKET_CATEGORY_ID)
         if category is None:
-            return await interaction.followup.send(
-                "Ticket category not configured.",
-                ephemeral=True
-            )
+            return await interaction.followup.send("Ticket category not found.", ephemeral=True)
+
+        ticket_id = next_ticket_id()
+        channel_name = f"ticket-{ticket_id}"
 
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
@@ -117,14 +110,13 @@ class TicketView(View):
             overwrites[staff_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
 
         channel = await guild.create_text_channel(
-            name=f"ticket-{interaction.user.id}",
+            name=channel_name,
             category=category,
             overwrites=overwrites
         )
 
-        # send ticket message WITH CLOSE BUTTON
         await channel.send(
-            f"{interaction.user.mention} welcome! Staff will be with you shortly.",
+            f"{interaction.user.mention} welcome to **Ticket #{ticket_id}**\nA staff member will assist you shortly.",
             view=CloseTicketView()
         )
 
@@ -137,25 +129,21 @@ class TicketView(View):
 
 @bot.event
 async def on_ready():
-    try:
-        await bot.tree.sync()
-    except Exception as e:
-        print("Sync error:", e)
-
+    await bot.tree.sync()
     print(f"Logged in as {bot.user}")
 
-# ================= TICKET PANEL COMMAND =================
+# ================= PANEL =================
 
 @bot.tree.command(name="ticketpanel")
 @app_commands.checks.has_permissions(administrator=True)
 async def ticketpanel(interaction: discord.Interaction):
 
     await interaction.channel.send(
-        "🎫 **Support Ticket Panel**\nClick below to create a ticket.",
+        "🎫 **Support Ticket Panel**\nClick below to open a ticket.",
         view=TicketView()
     )
 
-    await interaction.response.send_message("Ticket panel sent.", ephemeral=True)
+    await interaction.response.send_message("Panel created.", ephemeral=True)
 
 # ================= MODERATION =================
 
@@ -191,7 +179,7 @@ async def purge(interaction: discord.Interaction, amount: int):
 async def warn(interaction: discord.Interaction, member: discord.Member, reason: str):
     uid = str(member.id)
     warnings_db.setdefault(uid, []).append(reason)
-    save_warnings(warnings_db)
+    save_json(WARNINGS_FILE, warnings_db)
     await interaction.response.send_message("User warned.")
 
 @bot.tree.command(name="warnings")
