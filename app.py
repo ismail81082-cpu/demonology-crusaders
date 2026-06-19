@@ -33,6 +33,16 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# ================= UTIL =================
+
+def has_role(member, role_id):
+    return role_id and any(r.id == role_id for r in member.roles)
+
+async def log_action(msg):
+    ch = bot.get_channel(LOG_CHANNEL_ID)
+    if ch:
+        await ch.send(msg)
+
 # ================= WARNINGS =================
 
 def load_warnings():
@@ -47,17 +57,7 @@ def save_warnings(data):
 
 warnings_db = load_warnings()
 
-# ================= HELPERS =================
-
-def has_role(member, role_id):
-    return role_id and any(r.id == role_id for r in member.roles)
-
-async def log_action(msg):
-    ch = bot.get_channel(LOG_CHANNEL_ID)
-    if ch:
-        await ch.send(msg)
-
-# ================= TICKET CLOSE VIEW =================
+# ================= CLOSE BUTTON (STAFF ONLY) =================
 
 class CloseTicketView(View):
     def __init__(self):
@@ -66,29 +66,33 @@ class CloseTicketView(View):
     @discord.ui.button(label="🔒 Close Ticket", style=discord.ButtonStyle.red)
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
 
-        # STAFF ONLY CHECK
-        if not has_role(interaction.user, STAFF_ROLE_ID):
+        staff_role = interaction.guild.get_role(STAFF_ROLE_ID)
+
+        if staff_role not in interaction.user.roles:
             return await interaction.response.send_message(
-                "You do not have permission to close tickets.",
+                "❌ Only staff can close tickets.",
                 ephemeral=True
             )
 
         await interaction.response.send_message("Closing ticket in 5 seconds...")
         await asyncio.sleep(5)
+
         await interaction.channel.delete()
 
-# ================= TICKET SYSTEM =================
+# ================= TICKET PANEL + CREATE =================
 
 class TicketView(View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Create Ticket", style=discord.ButtonStyle.green)
+    @discord.ui.button(label="🎫 Create Ticket", style=discord.ButtonStyle.green)
     async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+
         await interaction.response.defer(ephemeral=True)
 
         guild = interaction.guild
 
+        # prevent duplicates
         existing = discord.utils.get(guild.channels, name=f"ticket-{interaction.user.id}")
         if existing:
             return await interaction.followup.send(
@@ -99,7 +103,7 @@ class TicketView(View):
         category = guild.get_channel(TICKET_CATEGORY_ID)
         if category is None:
             return await interaction.followup.send(
-                "Ticket category not found.",
+                "Ticket category not configured.",
                 ephemeral=True
             )
 
@@ -118,13 +122,14 @@ class TicketView(View):
             overwrites=overwrites
         )
 
+        # send ticket message WITH CLOSE BUTTON
         await channel.send(
-            f"{interaction.user.mention} support will be with you soon.",
+            f"{interaction.user.mention} welcome! Staff will be with you shortly.",
             view=CloseTicketView()
         )
 
         await interaction.followup.send(
-            f"Ticket created: {channel.mention}",
+            f"✅ Ticket created: {channel.mention}",
             ephemeral=True
         )
 
@@ -139,13 +144,20 @@ async def on_ready():
 
     print(f"Logged in as {bot.user}")
 
-# ================= COMMANDS =================
+# ================= TICKET PANEL COMMAND =================
 
 @bot.tree.command(name="ticketpanel")
 @app_commands.checks.has_permissions(administrator=True)
 async def ticketpanel(interaction: discord.Interaction):
-    await interaction.channel.send("🎫 Support Panel", view=TicketView())
-    await interaction.response.send_message("Panel created.", ephemeral=True)
+
+    await interaction.channel.send(
+        "🎫 **Support Ticket Panel**\nClick below to create a ticket.",
+        view=TicketView()
+    )
+
+    await interaction.response.send_message("Ticket panel sent.", ephemeral=True)
+
+# ================= MODERATION =================
 
 @bot.tree.command(name="kick")
 @app_commands.checks.has_permissions(kick_members=True)
@@ -158,13 +170,6 @@ async def kick(interaction: discord.Interaction, member: discord.Member, reason:
 async def ban(interaction: discord.Interaction, member: discord.Member, reason: str = "No reason"):
     await member.ban(reason=reason)
     await interaction.response.send_message("Banned.")
-
-@bot.tree.command(name="unban")
-@app_commands.checks.has_permissions(ban_members=True)
-async def unban(interaction: discord.Interaction, user_id: str):
-    user = await bot.fetch_user(int(user_id))
-    await interaction.guild.unban(user)
-    await interaction.response.send_message(f"Unbanned {user}")
 
 @bot.tree.command(name="timeout")
 @app_commands.checks.has_permissions(moderate_members=True)
@@ -179,24 +184,20 @@ async def purge(interaction: discord.Interaction, amount: int):
     await interaction.channel.purge(limit=amount)
     await interaction.followup.send("Deleted messages.", ephemeral=True)
 
+# ================= WARN SYSTEM =================
+
 @bot.tree.command(name="warn")
 @app_commands.checks.has_permissions(manage_messages=True)
 async def warn(interaction: discord.Interaction, member: discord.Member, reason: str):
     uid = str(member.id)
     warnings_db.setdefault(uid, []).append(reason)
     save_warnings(warnings_db)
-    await interaction.response.send_message("Warned.")
+    await interaction.response.send_message("User warned.")
 
 @bot.tree.command(name="warnings")
 async def warnings(interaction: discord.Interaction, member: discord.Member):
     data = warnings_db.get(str(member.id), [])
     await interaction.response.send_message("\n".join(data) if data else "No warnings.")
-
-@bot.tree.command(name="say")
-@app_commands.checks.has_permissions(administrator=True)
-async def say(interaction: discord.Interaction, message: str):
-    await interaction.response.send_message("Sent.", ephemeral=True)
-    await interaction.channel.send(message)
 
 # ================= CARRY SYSTEM =================
 
@@ -233,6 +234,6 @@ async def majorcarry(interaction: discord.Interaction):
 
     await interaction.response.send_message("Sent.", ephemeral=True)
 
-# ================= RUN BOT =================
+# ================= RUN =================
 
 bot.run(TOKEN)
