@@ -59,7 +59,14 @@ class TicketView(View):
 
     @discord.ui.button(label="Create Ticket", style=discord.ButtonStyle.green)
     async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
+    await interaction.response.defer(ephemeral=True)
+
+    guild = interaction.guild
+
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(view_channel=False),
+        interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+    }
 
         if TICKET_CATEGORY_ID == 0:
             return await interaction.response.send_message(
