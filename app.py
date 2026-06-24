@@ -16,12 +16,20 @@ GRIND_CHANNEL_ID = 1517601555002691754
 MAJOR_CARRY_CHANNEL_ID = 1517601583645593620
 LOG_CHANNEL_ID = 1517601418901586141
 
-CARRY_ROLE_ID = 1517602581071790280
-GRIND_ROLE_ID = 1517602603666772049
-MAJOR_CARRY_ROLE_ID = 1517602552819093614
+# Can use /carry, /grind and /majorcarry
+ALL_COMMANDS_ROLE_ID = 1517895181700173925
+
+# Can use /carry and /grind
+CARRY_AND_GRIND_ROLE_ID = 1517895036463874118
+
+# Can use /carry only
+CARRY_ONLY_ROLE_ID = 1519381389164806184
 
 TICKET_CATEGORY_ID = 1517602245842046996
-STAFF_ROLE_ID = 1517602381888749689
+STAFF_ROLE_IDS = [
+    1519035890490675312,
+    1517602381888749689
+]
 
 WARNINGS_FILE = "warnings.json"
 
@@ -66,9 +74,7 @@ class CloseTicketView(View):
     @discord.ui.button(label="🔒 Close Ticket", style=discord.ButtonStyle.red)
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
 
-        staff_role = interaction.guild.get_role(STAFF_ROLE_ID)
-
-        if staff_role not in interaction.user.roles:
+        if not any(role.id in STAFF_ROLE_IDS for role in interaction.user.roles):
             return await interaction.response.send_message(
                 "❌ Staff only.",
                 ephemeral=True
@@ -107,9 +113,10 @@ class TicketView(View):
             interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True),
         }
 
-        staff_role = guild.get_role(STAFF_ROLE_ID)
-        if staff_role:
-            overwrites[staff_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
+        for role_id in STAFF_ROLE_IDS:
+            role = guild.get_role(role_id)
+            if role:
+                overwrites[role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
 
         channel = await guild.create_text_channel(
             name=f"ticket-{interaction.user.id}",
@@ -194,29 +201,43 @@ async def warnings(interaction: discord.Interaction, member: discord.Member):
 
 @bot.tree.command(name="carry")
 async def carry(interaction: discord.Interaction):
-    if not has_role(interaction.user, CARRY_ROLE_ID):
+
+    allowed = (
+        has_role(interaction.user, ALL_COMMANDS_ROLE_ID)
+        or has_role(interaction.user, CARRY_AND_GRIND_ROLE_ID)
+        or has_role(interaction.user, CARRY_ONLY_ROLE_ID)
+    )
+
+    if not allowed:
         return await interaction.response.send_message("No permission.", ephemeral=True)
 
     ch = bot.get_channel(CARRY_CHANNEL_ID)
     if ch:
-        await ch.send(f"<@&{1517604341387759656}> Carry requested by {interaction.user.mention}")
+        await ch.send(f"<@&1517604341387759656> Carry requested by {interaction.user.mention}")
 
     await interaction.response.send_message("Sent.", ephemeral=True)
 
 @bot.tree.command(name="grind")
 async def grind(interaction: discord.Interaction):
-    if not has_role(interaction.user, GRIND_ROLE_ID):
+
+    allowed = (
+        has_role(interaction.user, ALL_COMMANDS_ROLE_ID)
+        or has_role(interaction.user, CARRY_AND_GRIND_ROLE_ID)
+    )
+
+    if not allowed:
         return await interaction.response.send_message("No permission.", ephemeral=True)
 
     ch = bot.get_channel(GRIND_CHANNEL_ID)
     if ch:
-        await ch.send(f"<@&{1517604391371276489}> Grind requested by {interaction.user.mention}")
+        await ch.send(f"<@&1517604391371276489> Grind requested by {interaction.user.mention}")
 
     await interaction.response.send_message("Sent.", ephemeral=True)
 
 @bot.tree.command(name="majorcarry")
 async def majorcarry(interaction: discord.Interaction):
-    if not has_role(interaction.user, MAJOR_CARRY_ROLE_ID):
+
+    if not has_role(interaction.user, ALL_COMMANDS_ROLE_ID):
         return await interaction.response.send_message("No permission.", ephemeral=True)
 
     ch = bot.get_channel(MAJOR_CARRY_CHANNEL_ID)
