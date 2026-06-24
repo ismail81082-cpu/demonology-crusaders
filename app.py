@@ -227,4 +227,4 @@ async def majorcarry(interaction: discord.Interaction):
 
 # ================= RUN =================
 
-bot.run(TOKEN
+bot.run(TOKEN)
