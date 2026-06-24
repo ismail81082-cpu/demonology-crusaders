@@ -27,8 +27,8 @@ CARRY_ONLY_ROLE_ID = 1519381389164806184
 
 TICKET_CATEGORY_ID = 1517602245842046996
 STAFF_ROLE_IDS = [
-    1519035890490675312,
-    1517602381888749689
+    1517602381888749689,
+    1519035890490675312
 ]
 
 WARNINGS_FILE = "warnings.json"
@@ -139,6 +139,8 @@ class TicketView(View):
 
 @bot.event
 async def on_ready():
+    bot.add_view(TicketView())
+    bot.add_view(CloseTicketView())
     await bot.tree.sync()
     print(f"Logged in as {bot.user}")
 
