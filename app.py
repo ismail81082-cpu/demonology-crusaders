@@ -151,9 +151,41 @@ class TicketView(View):
 
 @bot.event
 async def on_ready():
-    await bot.tree.sync()
-    print(f"Logged in as {bot.user}")
+    try:
+        synced = await bot.tree.sync()
+        print("=" * 40)
+        print(f"Logged in as {bot.user}")
+        print(f"Synced {len(synced)} commands")
+        print("BOT UPDATED VERSION LOADED")
+        print("=" * 40)
+    except Exception as e:
+        print("SYNC ERROR:", e)
+        
+# ================= ERROR HANDLER =================
 
+@bot.tree.error
+async def on_app_command_error(
+    interaction: discord.Interaction,
+    error: app_commands.AppCommandError
+):
+    print("\n===== SLASH COMMAND ERROR =====")
+    print(repr(error))
+    print("==============================\n")
+
+    try:
+        if interaction.response.is_done():
+            await interaction.followup.send(
+                f"❌ Error: {error}",
+                ephemeral=True
+            )
+        else:
+            await interaction.response.send_message(
+                f"❌ Error: {error}",
+                ephemeral=True
+            )
+    except Exception as e:
+        print("Failed to send error:", e)
+        
 # ================= PANEL =================
 
 @bot.tree.command(name="ticketpanel")
@@ -222,100 +254,127 @@ async def warnings(interaction, member: discord.Member):
 @bot.tree.command(name="carry")
 async def carry(interaction: discord.Interaction):
 
-    allowed = (
-        has_role(interaction.user, CARRY_ROLE_ID)
-        or has_role(interaction.user, ALL_REQUESTS_ROLE_ID)
-        or has_role(interaction.user, CARRY_GRIND_ROLE_ID)
-    )
+    try:
+        allowed = (
+            has_role(interaction.user, CARRY_ROLE_ID)
+            or has_role(interaction.user, ALL_REQUESTS_ROLE_ID)
+            or has_role(interaction.user, CARRY_GRIND_ROLE_ID)
+        )
 
-    if not allowed:
-        return await interaction.response.send_message(
-            "No permission.",
+        if not allowed:
+            return await interaction.response.send_message(
+                "No permission.",
+                ephemeral=True
+            )
+
+        ch = bot.get_channel(CARRY_CHANNEL_ID)
+
+        if ch is None:
+            return await interaction.response.send_message(
+                "Carry channel not found.",
+                ephemeral=True
+            )
+
+        await ch.send(
+            f"<@&1517604341387759656> Carry requested by {interaction.user.mention}"
+        )
+
+        await interaction.response.send_message(
+            "Sent.",
             ephemeral=True
         )
 
-    ch = bot.get_channel(CARRY_CHANNEL_ID)
-
-    if ch is None:
-        return await interaction.response.send_message(
-            "Carry channel not found.",
-            ephemeral=True
-        )
-
-    await ch.send(
-        f"<@&1517604341387759656> Carry requested by {interaction.user.mention}"
-    )
-
-    await interaction.response.send_message(
-        "Sent.",
-        ephemeral=True
-    )
+    except Exception as e:
+        print("CARRY ERROR:", e)
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                f"Error: {e}",
+                ephemeral=True
+            )
 
 
 @bot.tree.command(name="grind")
 async def grind(interaction: discord.Interaction):
 
-    allowed = (
-        has_role(interaction.user, GRIND_ROLE_ID)
-        or has_role(interaction.user, ALL_REQUESTS_ROLE_ID)
-        or has_role(interaction.user, CARRY_GRIND_ROLE_ID)
-    )
+    try:
+        allowed = (
+            has_role(interaction.user, GRIND_ROLE_ID)
+            or has_role(interaction.user, ALL_REQUESTS_ROLE_ID)
+            or has_role(interaction.user, CARRY_GRIND_ROLE_ID)
+        )
 
-    if not allowed:
-        return await interaction.response.send_message(
-            "No permission.",
+        if not allowed:
+            return await interaction.response.send_message(
+                "No permission.",
+                ephemeral=True
+            )
+
+        ch = bot.get_channel(GRIND_CHANNEL_ID)
+
+        if ch is None:
+            return await interaction.response.send_message(
+                "Grind channel not found.",
+                ephemeral=True
+            )
+
+        await ch.send(
+            f"<@&1517604391371276489> Grind requested by {interaction.user.mention}"
+        )
+
+        await interaction.response.send_message(
+            "Sent.",
             ephemeral=True
         )
 
-    ch = bot.get_channel(GRIND_CHANNEL_ID)
-
-    if ch is None:
-        return await interaction.response.send_message(
-            "Grind channel not found.",
-            ephemeral=True
-        )
-
-    await ch.send(
-        f"<@&1517604391371276489> Grind requested by {interaction.user.mention}"
-    )
-
-    await interaction.response.send_message(
-        "Sent.",
-        ephemeral=True
-    )
+    except Exception as e:
+        print("GRIND ERROR:", e)
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                f"Error: {e}",
+                ephemeral=True
+            )
 
 
 @bot.tree.command(name="majorcarry")
 async def majorcarry(interaction: discord.Interaction):
 
-    allowed = (
-        has_role(interaction.user, MAJOR_CARRY_ROLE_ID)
-        or has_role(interaction.user, ALL_REQUESTS_ROLE_ID)
-    )
+    try:
+        allowed = (
+            has_role(interaction.user, MAJOR_CARRY_ROLE_ID)
+            or has_role(interaction.user, ALL_REQUESTS_ROLE_ID)
+        )
 
-    if not allowed:
-        return await interaction.response.send_message(
-            "No permission.",
+        if not allowed:
+            return await interaction.response.send_message(
+                "No permission.",
+                ephemeral=True
+            )
+
+        ch = bot.get_channel(MAJOR_CARRY_CHANNEL_ID)
+
+        if ch is None:
+            return await interaction.response.send_message(
+                "Major carry channel not found.",
+                ephemeral=True
+            )
+
+        await ch.send(
+            f"@everyone Major Carry requested by {interaction.user.mention}"
+        )
+
+        await interaction.response.send_message(
+            "Sent.",
             ephemeral=True
         )
 
-    ch = bot.get_channel(MAJOR_CARRY_CHANNEL_ID)
-
-    if ch is None:
-        return await interaction.response.send_message(
-            "Major carry channel not found.",
-            ephemeral=True
-        )
-
-    await ch.send(
-        f"@everyone Major Carry requested by {interaction.user.mention}"
-    )
-
-    await interaction.response.send_message(
-        "Sent.",
-        ephemeral=True
-    )
-
+    except Exception as e:
+        print("MAJORCARRY ERROR:", e)
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                f"Error: {e}",
+                ephemeral=True
+            )
+            
 # ================= RUN =================
 
 bot.run(TOKEN)
