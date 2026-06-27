@@ -54,7 +54,11 @@ warnings_db = load_warnings()
 # ================= HELPERS =================
 
 def has_role(member, role_id):
-    return role_id and any(r.id == role_id for r in member.roles)
+    print(
+        f"Checking {member} for role {role_id}\n"
+        f"User roles: {[r.id for r in member.roles]}"
+    )
+    return any(r.id == role_id for r in member.roles)
 
 async def log_action(msg):
     ch = bot.get_channel(LOG_CHANNEL_ID)
@@ -251,23 +255,40 @@ async def warnings(interaction, member: discord.Member):
 
 # ================= CARRY =================
 
+def can_carry(member):
+    return (
+        has_role(member, CARRY_ROLE_ID)
+        or has_role(member, ALL_REQUESTS_ROLE_ID)
+        or has_role(member, CARRY_GRIND_ROLE_ID)
+    )
+
+def can_grind(member):
+    return (
+        has_role(member, GRIND_ROLE_ID)
+        or has_role(member, ALL_REQUESTS_ROLE_ID)
+        or has_role(member, CARRY_GRIND_ROLE_ID)
+    )
+
+def can_majorcarry(member):
+    return (
+        has_role(member, MAJOR_CARRY_ROLE_ID)
+        or has_role(member, ALL_REQUESTS_ROLE_ID)
+    )
+
+
 @bot.tree.command(name="carry")
 async def carry(interaction: discord.Interaction):
-
     try:
-        allowed = (
-            has_role(interaction.user, CARRY_ROLE_ID)
-            or has_role(interaction.user, ALL_REQUESTS_ROLE_ID)
-            or has_role(interaction.user, CARRY_GRIND_ROLE_ID)
-        )
+        print("CARRY COMMAND USED")
+        print("USER ROLES:", [r.id for r in interaction.user.roles])
 
-        if not allowed:
+        if not can_carry(interaction.user):
             return await interaction.response.send_message(
-                "No permission.",
+                f"No permission.\nYour roles: {[r.id for r in interaction.user.roles]}",
                 ephemeral=True
             )
 
-        ch = bot.get_channel(CARRY_CHANNEL_ID)
+        ch = interaction.guild.get_channel(CARRY_CHANNEL_ID)
 
         if ch is None:
             return await interaction.response.send_message(
@@ -280,36 +301,32 @@ async def carry(interaction: discord.Interaction):
         )
 
         await interaction.response.send_message(
-            "Sent.",
+            "Carry request sent.",
             ephemeral=True
         )
 
     except Exception as e:
-        print("CARRY ERROR:", e)
+        print("CARRY ERROR:", repr(e))
         if not interaction.response.is_done():
             await interaction.response.send_message(
-                f"Error: {e}",
+                str(e),
                 ephemeral=True
             )
 
 
 @bot.tree.command(name="grind")
 async def grind(interaction: discord.Interaction):
-
     try:
-        allowed = (
-            has_role(interaction.user, GRIND_ROLE_ID)
-            or has_role(interaction.user, ALL_REQUESTS_ROLE_ID)
-            or has_role(interaction.user, CARRY_GRIND_ROLE_ID)
-        )
+        print("GRIND COMMAND USED")
+        print("USER ROLES:", [r.id for r in interaction.user.roles])
 
-        if not allowed:
+        if not can_grind(interaction.user):
             return await interaction.response.send_message(
-                "No permission.",
+                f"No permission.\nYour roles: {[r.id for r in interaction.user.roles]}",
                 ephemeral=True
             )
 
-        ch = bot.get_channel(GRIND_CHANNEL_ID)
+        ch = interaction.guild.get_channel(GRIND_CHANNEL_ID)
 
         if ch is None:
             return await interaction.response.send_message(
@@ -322,35 +339,32 @@ async def grind(interaction: discord.Interaction):
         )
 
         await interaction.response.send_message(
-            "Sent.",
+            "Grind request sent.",
             ephemeral=True
         )
 
     except Exception as e:
-        print("GRIND ERROR:", e)
+        print("GRIND ERROR:", repr(e))
         if not interaction.response.is_done():
             await interaction.response.send_message(
-                f"Error: {e}",
+                str(e),
                 ephemeral=True
             )
 
 
 @bot.tree.command(name="majorcarry")
 async def majorcarry(interaction: discord.Interaction):
-
     try:
-        allowed = (
-            has_role(interaction.user, MAJOR_CARRY_ROLE_ID)
-            or has_role(interaction.user, ALL_REQUESTS_ROLE_ID)
-        )
+        print("MAJORCARRY COMMAND USED")
+        print("USER ROLES:", [r.id for r in interaction.user.roles])
 
-        if not allowed:
+        if not can_majorcarry(interaction.user):
             return await interaction.response.send_message(
-                "No permission.",
+                f"No permission.\nYour roles: {[r.id for r in interaction.user.roles]}",
                 ephemeral=True
             )
 
-        ch = bot.get_channel(MAJOR_CARRY_CHANNEL_ID)
+        ch = interaction.guild.get_channel(MAJOR_CARRY_CHANNEL_ID)
 
         if ch is None:
             return await interaction.response.send_message(
@@ -363,15 +377,15 @@ async def majorcarry(interaction: discord.Interaction):
         )
 
         await interaction.response.send_message(
-            "Sent.",
+            "Major carry request sent.",
             ephemeral=True
         )
 
     except Exception as e:
-        print("MAJORCARRY ERROR:", e)
+        print("MAJORCARRY ERROR:", repr(e))
         if not interaction.response.is_done():
             await interaction.response.send_message(
-                f"Error: {e}",
+                str(e),
                 ephemeral=True
             )
             
