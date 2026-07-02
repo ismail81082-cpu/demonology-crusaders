@@ -335,7 +335,7 @@ async def grind(interaction: discord.Interaction):
             )
 
         await ch.send(
-            f"<@&1517602603666772049> Grind requested by {interaction.user.mention}"
+            f"<@&1522250804617150474> Grind requested by {interaction.user.mention}"
         )
 
         await interaction.response.send_message(
