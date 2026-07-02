@@ -297,7 +297,7 @@ async def carry(interaction: discord.Interaction):
             )
 
         await ch.send(
-            f"<@&1517604341387759656> Carry requested by {interaction.user.mention}"
+            f"<@&1522250766373621973> Carry requested by {interaction.user.mention}"
         )
 
         await interaction.response.send_message(
@@ -335,7 +335,7 @@ async def grind(interaction: discord.Interaction):
             )
 
         await ch.send(
-            f"<@&1517604391371276489> Grind requested by {interaction.user.mention}"
+            f"<@&1517602603666772049> Grind requested by {interaction.user.mention}"
         )
 
         await interaction.response.send_message(
@@ -373,7 +373,7 @@ async def majorcarry(interaction: discord.Interaction):
             )
 
         await ch.send(
-            f"@everyone Major Carry requested by {interaction.user.mention}"
+            f"<@&1522250834061299733> Major Carry requested by {interaction.user.mention}"
         )
 
         await interaction.response.send_message(
